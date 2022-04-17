@@ -2,7 +2,6 @@ package config_parser
 
 import (
 	"gopkg.in/ini.v1"
-	"log"
 	"main/program"
 )
 
@@ -38,17 +37,20 @@ func (i *IniConfigParser) Parse() (map[string]*program.Program, error) {
 func (i *IniConfigParser) parse(data []byte) (map[string]*program.Program, error) {
 	cfg, err := ini.Load(data)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	cfg.DeleteSection("DEFAULT") // DEFAULT is section by default. We don't need it
-	var result map[string]*program.Program
+	result := make(map[string]*program.Program)
 	for _, section := range cfg.Sections() {
 		newProgram := program.NewProgram()
-		if err := section.MapTo(&newProgram); err != nil {
+		if err := section.StrictMapTo(&newProgram); err != nil {
+			return nil, err
+		} else if err = newProgram.IsCorrect(); err != nil {
 			return nil, err
 		}
-		result[section.Name()] = newProgram
+		newProgram.Name = section.Name()
+		result[newProgram.Name] = newProgram
 	}
 	return result, nil
 }

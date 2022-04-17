@@ -1,6 +1,7 @@
 package task_master
 
 import (
+	"fmt"
 	"main/config_parser"
 	"main/input_reader"
 	"main/output_printer"
@@ -39,7 +40,9 @@ func (t *TaskMaster) SetConfigParser(configParser config_parser.ConfigParser) {
 }
 
 func (t *TaskMaster) RunProgram() {
-	if programs, err := t.configParser.Parse(); err != nil {
+	if programs, err := t.configParser.Parse(); err == nil {
 		t.programs = programs
+	} else {
+		fmt.Println(err.Error())
 	}
 }
