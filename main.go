@@ -1,31 +1,20 @@
 package main
 
 import (
-	"gopkg.in/ini.v1"
-	"log"
-	"os"
+	"main/config_parser"
+	"main/input_reader"
+	"main/output_printer"
+	"main/task_master"
 )
 
-type T struct {
-	AwesomeSection AwesomeSection `ini:"AwesomeSection"`
-}
-
-type AwesomeSection struct {
-	StringValue string
-	IntValue int
-}
-
 func main() {
-	data, err := os.ReadFile("config.ini")
-	cfg, err := ini.Load(data)
-	if err != nil {
-		log.Fatal(err)
-	}
+	inputReader := input_reader.NewInputReader()
+	outputPrinter := output_printer.NewOutputPrinter()
+	taskMaster := task_master.GetTaskMaster()
+	configParser := config_parser.NewConfigParser("config.ini")
 
-	t := T{}
-	err = cfg.MapTo(&t)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println(t.AwesomeSection)
+	taskMaster.SetOutputPrinter(outputPrinter)
+	taskMaster.SetInputReader(inputReader)
+	taskMaster.SetConfigParser(configParser)
+	taskMaster.RunProgram()
 }
