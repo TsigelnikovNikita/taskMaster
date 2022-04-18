@@ -39,10 +39,29 @@ func (t *TaskMaster) SetConfigParser(configParser config_parser.ConfigParser) {
 	t.configParser = configParser
 }
 
+func (t *TaskMaster) ReloadConfig() error {
+	newPrograms, err := t.configParser.Parse()
+	if err != nil {
+		return err
+	}
+
+	prevPrograms := t.programs
+	t.programs = make(map[string]*program.Program)
+	for _, p := range newPrograms {
+		t.programs[p.Name] = p
+		if prevProgram, ok := prevPrograms[p.Name]; !ok {
+		//	t.startProgram(prevProgram)
+		} else if !p.EqualTo(prevProgram) {
+		//  t.reloadProgram(prevProgram)
+		}
+	}
+	return nil
+}
+
 func (t *TaskMaster) RunProgram() {
-	if programs, err := t.configParser.Parse(); err == nil {
-		t.programs = programs
-	} else {
+	err := t.ReloadConfig()
+	if err != nil {
 		fmt.Println(err.Error())
+		return
 	}
 }
