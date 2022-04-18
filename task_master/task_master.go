@@ -5,12 +5,12 @@ import (
 	"main/config_parser"
 	"main/input_reader"
 	"main/output_printer"
-	"main/program"
+	"main/task"
 )
 
 
 type ConfigParser interface {
-	Parse() (map[string]*program.Program, error)
+	Parse() (map[string]*task.Task, error)
 }
 
 type TaskMaster struct {
@@ -18,7 +18,7 @@ type TaskMaster struct {
 	outputPrinter output_printer.OutputPrinter
 	configParser ConfigParser
 
-	programs map[string]*program.Program
+	tasks map[string]*task.Task
 }
 
 var taskMaster TaskMaster
@@ -40,19 +40,19 @@ func (t *TaskMaster) SetConfigParser(configParser config_parser.ConfigParser) {
 }
 
 func (t *TaskMaster) ReloadConfig() error {
-	newPrograms, err := t.configParser.Parse()
+	newTasks, err := t.configParser.Parse()
 	if err != nil {
 		return err
 	}
 
-	prevPrograms := t.programs
-	t.programs = make(map[string]*program.Program)
-	for _, p := range newPrograms {
-		t.programs[p.Name] = p
-		if prevProgram, ok := prevPrograms[p.Name]; !ok {
-		//	t.startProgram(prevProgram)
-		} else if !p.EqualTo(prevProgram) {
-		//  t.reloadProgram(prevProgram)
+	prevTasks := t.tasks
+	t.tasks = make(map[string]*task.Task)
+	for _, task := range newTasks {
+		t.tasks[task.Name] = task
+		if prevTask, ok := prevTasks[task.Name]; !ok {
+		//	t.startTask(prevTask)
+		} else if !task.EqualTo(prevTask) {
+		//  t.reloadTask(prevTask)
 		}
 	}
 	return nil

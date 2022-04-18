@@ -3,7 +3,7 @@ package config_parser
 import (
 	"bytes"
 	"gopkg.in/ini.v1"
-	"main/program"
+	"main/task"
 	"testing"
 )
 
@@ -26,11 +26,11 @@ func serializeStructToBytes(v interface{}) []byte {
 
 func TestWithAllInformation(t *testing.T) {
 	type T struct {
-		*program.Program `comment:"Program"`
+		*task.Task `comment:"Task"`
 	}
 	expectedResult :=
-		&program.Program{
-			Name:             "Program",
+		&task.Task{
+			Name:             "Task",
 			Command:          "ls -la",
 			ProcessNumber:    10,
 			AutoStart:        true,
@@ -50,56 +50,56 @@ func TestWithAllInformation(t *testing.T) {
 
 	cr := mockConfigReader{data: data}
 	cp := IniConfigParser{configReader: cr}
-	programs, _ := cp.Parse()
+	tasks, _ := cp.Parse()
 
 	expectedLength := 1
-	if len(programs) != expectedLength {
-		t.Fatalf(`len(programs) equal to "%v", should be equal to "%d"`, len(programs), expectedLength)
+	if len(tasks) != expectedLength {
+		t.Fatalf(`len(tasks) equal to "%v", should be equal to "%d"`, len(tasks), expectedLength)
 	}
-	if result, ok := programs[expectedResult.Name]; !ok {
+	if result, ok := tasks[expectedResult.Name]; !ok {
 		t.Fatalf(`result.Name equal to "%s", should be equal to "%s"'`, result.Name, expectedResult.Name)
 	} else if !result.EqualTo(expectedResult) {
 		t.Fatalf(`result doesn't equal to expectedResult'`)
 	}
 }
 
-func TestWithTManyPrograms(t *testing.T) {
+func TestWithTManyTasks(t *testing.T) {
 	type T struct {
-		Program           *program.Program `comment:"Program"`
-		AnotherProgram    *program.Program `comment:"AnotherProgram"`
-		AnotherOneProgram *program.Program `comment:"AnotherOneProgram"`
+		Task           *task.Task `comment:"Task"`
+		AnotherTask    *task.Task `comment:"AnotherTask"`
+		AnotherOneTask *task.Task `comment:"AnotherOneTask"`
 	}
-	expectedPrograms := []*program.Program{
+	expectedTasks := []*task.Task{
 		{
-			Name:    "Program",
+			Name:    "Task",
 			Command: "ls -la",
 		},
 		{
-			Name:    "AnotherProgram",
+			Name:    "AnotherTask",
 			Command: "cd ../directory/",
 		},
 		{
-			Name:    "AnotherOneProgram",
+			Name:    "AnotherOneTask",
 			Command: "rm -rf *",
 		},
 	}
 
 	data := serializeStructToBytes(&T{
-		expectedPrograms[0],
-		expectedPrograms[1],
-		expectedPrograms[2],
+		expectedTasks[0],
+		expectedTasks[1],
+		expectedTasks[2],
 	})
 
 	cr := mockConfigReader{data: data}
 	cp := IniConfigParser{configReader: cr}
-	resultPrograms, _ := cp.Parse()
+	resultTasks, _ := cp.Parse()
 
-	expectedLength := len(expectedPrograms)
-	if len(resultPrograms) != expectedLength {
-		t.Fatalf(`len(resultPrograms) equal to "%v", should be equal to "%d"`, len(resultPrograms), expectedLength)
+	expectedLength := len(expectedTasks)
+	if len(resultTasks) != expectedLength {
+		t.Fatalf(`len(resultTasks) equal to "%v", should be equal to "%d"`, len(resultTasks), expectedLength)
 	}
-	for _, p := range expectedPrograms {
-		if result, ok := resultPrograms[p.Name]; !ok {
+	for _, p := range expectedTasks {
+		if result, ok := resultTasks[p.Name]; !ok {
 			t.Fatalf(`result.Name equal to "%s", should be equal to "%s"`, result.Name, p.Name)
 		} else if result.Command != p.Command {
 			t.Fatalf(`result.Command equal to "%s", should be equal to "%s"`, result.Command, p.Command)
@@ -112,7 +112,7 @@ func TestWithIncorrectData(t *testing.T) {
 
 	cr := mockConfigReader{data: data}
 	cp := IniConfigParser{configReader: cr}
-	expectedResult := "program must have 'command' value"
+	expectedResult := "key-value delimiter not found: IncorrectData"
 	if _, err := cp.Parse(); err == nil {
 		t.Fatalf(`expected err from cp.Parse() method`)
 	} else if err.Error() != expectedResult {
@@ -120,12 +120,12 @@ func TestWithIncorrectData(t *testing.T) {
 	}
 }
 
-func TestWithEmptyProgram(t *testing.T) {
-	data := []byte("[Program]")
+func TestWithEmptyTask(t *testing.T) {
+	data := []byte("[Task]")
 
 	cr := mockConfigReader{data: data}
 	cp := IniConfigParser{configReader: cr}
-	expectedResult := "program must have 'command' value"
+	expectedResult := "task must have 'command' value"
 	if _, err := cp.Parse(); err == nil {
 		t.Fatalf(`expected err from cp.Parse() method`)
 	} else if err.Error() != expectedResult {
@@ -134,12 +134,12 @@ func TestWithEmptyProgram(t *testing.T) {
 }
 
 func TestWithoutCommandValue(t *testing.T) {
-	data := []byte("[Program]\n" +
+	data := []byte("[Task]\n" +
 		"auto_restart=unexpected")
 
 	cr := mockConfigReader{data: data}
 	cp := IniConfigParser{configReader: cr}
-	expectedResult := "program must have 'command' value"
+	expectedResult := "task must have 'command' value"
 	if _, err := cp.Parse(); err == nil {
 		t.Fatalf(`expected err from cp.Parse() method`)
 	} else if err.Error() != expectedResult {
@@ -150,15 +150,15 @@ func TestWithoutCommandValue(t *testing.T) {
 
 func TestWithIncorrectAutoStartValue(t *testing.T) {
 	type T struct {
-		*program.Program `comment:"Program"`
+		*task.Task `comment:"Task"`
 	}
-	programData :=
-		&program.Program{
-			Name:        "Program",
+	taskData :=
+		&task.Task{
+			Name:        "Task",
 			Command:     "ls -la",
 			AutoRestart: "qwerty",
 		}
-	data := serializeStructToBytes(&T{programData})
+	data := serializeStructToBytes(&T{taskData})
 
 	cr := mockConfigReader{data: data}
 	cp := IniConfigParser{configReader: cr}

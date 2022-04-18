@@ -2,7 +2,7 @@ package config_parser
 
 import (
 	"gopkg.in/ini.v1"
-	"main/program"
+	"main/task"
 )
 
 type configReader interface {
@@ -10,7 +10,7 @@ type configReader interface {
 }
 
 type ConfigParser interface {
-	Parse() (map[string]*program.Program, error)
+	Parse() (map[string]*task.Task, error)
 	setConfigReader(cr configReader)
 }
 
@@ -26,7 +26,7 @@ func NewConfigParser(filename string) ConfigParser {
 	return &IniConfigParser{fileConfigReader{filename}}
 }
 
-func (i *IniConfigParser) Parse() (map[string]*program.Program, error) {
+func (i *IniConfigParser) Parse() (map[string]*task.Task, error) {
 	if data, err := i.configReader.getData(); err != nil {
 		return nil, err
 	} else {
@@ -34,23 +34,23 @@ func (i *IniConfigParser) Parse() (map[string]*program.Program, error) {
 	}
 }
 
-func (i *IniConfigParser) parse(data []byte) (map[string]*program.Program, error) {
+func (i *IniConfigParser) parse(data []byte) (map[string]*task.Task, error) {
 	cfg, err := ini.Load(data)
 	if err != nil {
 		return nil, err
 	}
 
 	cfg.DeleteSection("DEFAULT") // DEFAULT is section by default. We don't need it
-	result := make(map[string]*program.Program)
+	result := make(map[string]*task.Task)
 	for _, section := range cfg.Sections() {
-		newProgram := program.NewProgram()
-		if err := section.StrictMapTo(&newProgram); err != nil {
+		task := task.NewTask()
+		if err := section.StrictMapTo(&task); err != nil {
 			return nil, err
-		} else if err = newProgram.IsCorrect(); err != nil {
+		} else if err = task.IsCorrect(); err != nil {
 			return nil, err
 		}
-		newProgram.Name = section.Name()
-		result[newProgram.Name] = newProgram
+		task.Name = section.Name()
+		result[task.Name] = task
 	}
 	return result, nil
 }

@@ -1,4 +1,4 @@
-package program
+package task
 
 import "errors"
 
@@ -9,7 +9,7 @@ import "errors"
  * \never
  * The process will not be auto restarted.
  * \whenUnexpected
- * The process will be restarted when the program exits with an unexpected exit code.
+ * The process will be restarted when the task exits with an unexpected exit code.
  */
 const (
 	never      = "never"
@@ -17,7 +17,7 @@ const (
 	always     = "always"
 )
 
-type Program struct {
+type Task struct {
 	Name             string
 	Command          string   `ini:"command"`
 	ProcessNumber    int      `ini:"process_number"`
@@ -35,8 +35,8 @@ type Program struct {
 	Umask            string   `ini:"umask"`
 }
 
-func NewProgram() *Program {
-	return &Program{
+func NewTask() *Task {
+	return &Task{
 		ProcessNumber: 1,
 		AutoStart:     true,
 		StartTimeSec:  1,
@@ -48,67 +48,67 @@ func NewProgram() *Program {
 	}
 }
 
-func (p *Program) commandIsCorrect() error {
-	if len(p.Command) == 0 {
-		return errors.New("program must have 'command' value")
+func (t *Task) commandIsCorrect() error {
+	if len(t.Command) == 0 {
+		return errors.New("task must have 'command' value")
 	}
 	return nil
 }
 
-func (p *Program) autoRestartIsCorrect() error {
-	if p.AutoRestart != never && p.AutoRestart != unexpected && p.AutoRestart != always {
+func (t *Task) autoRestartIsCorrect() error {
+	if t.AutoRestart != never && t.AutoRestart != unexpected && t.AutoRestart != always {
 		return errors.New("auto_restart option should be '" + never + "', '" + unexpected + "' or '" + always + "' value")
 	}
 	return nil
 }
 
-func (p *Program) IsCorrect() error {
-	if err := p.commandIsCorrect(); err != nil {
+func (t *Task) IsCorrect() error {
+	if err := t.commandIsCorrect(); err != nil {
 		return err
-	} else if err = p.autoRestartIsCorrect(); err != nil {
+	} else if err = t.autoRestartIsCorrect(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *Program) compareExitCode(lp *Program) bool {
-	if len(p.ExitCodes) != len(lp.ExitCodes) {
+func (t *Task) compareExitCode(lp *Task) bool {
+	if len(t.ExitCodes) != len(lp.ExitCodes) {
 		return false
 	}
-	for i := 0; i < len(p.ExitCodes); i++ {
-		if p.ExitCodes[i] != lp.ExitCodes[i] {
+	for i := 0; i < len(t.ExitCodes); i++ {
+		if t.ExitCodes[i] != lp.ExitCodes[i] {
 			return false
 		}
 	}
 	return true
 }
 
-func (p *Program) compareEnvironments(lp *Program) bool {
-	if len(p.Environments) != len(lp.Environments) {
+func (t *Task) compareEnvironments(lp *Task) bool {
+	if len(t.Environments) != len(lp.Environments) {
 		return false
 	}
-	for i := 0; i < len(p.Environments); i++ {
-		if p.Environments[i] != lp.Environments[i] {
+	for i := 0; i < len(t.Environments); i++ {
+		if t.Environments[i] != lp.Environments[i] {
 			return false
 		}
 	}
 	return true
 }
 
-func (p *Program) EqualTo(lp *Program) bool {
-	return p.Name == lp.Name &&
-		p.Command == lp.Command &&
-		p.ProcessNumber == lp.ProcessNumber &&
-		p.AutoStart == lp.AutoStart &&
-		p.StartTimeSec == lp.StartTimeSec &&
-		p.StartRetries == lp.StartRetries &&
-		p.AutoRestart == lp.AutoRestart &&
-		p.compareExitCode(lp) &&
-		p.StopSignal == lp.StopSignal &&
-		p.StopWaitSecs == lp.StopWaitSecs &&
-		p.StdErrLogfile == lp.StdErrLogfile &&
-		p.StdOutLogfile == lp.StdOutLogfile &&
-		p.compareEnvironments(lp) &&
-		p.WorkingDirectory == lp.WorkingDirectory &&
-		p.Umask == lp.Umask
+func (t *Task) EqualTo(lp *Task) bool {
+	return t.Name == lp.Name &&
+		t.Command == lp.Command &&
+		t.ProcessNumber == lp.ProcessNumber &&
+		t.AutoStart == lp.AutoStart &&
+		t.StartTimeSec == lp.StartTimeSec &&
+		t.StartRetries == lp.StartRetries &&
+		t.AutoRestart == lp.AutoRestart &&
+		t.compareExitCode(lp) &&
+		t.StopSignal == lp.StopSignal &&
+		t.StopWaitSecs == lp.StopWaitSecs &&
+		t.StdErrLogfile == lp.StdErrLogfile &&
+		t.StdOutLogfile == lp.StdOutLogfile &&
+		t.compareEnvironments(lp) &&
+		t.WorkingDirectory == lp.WorkingDirectory &&
+		t.Umask == lp.Umask
 }
