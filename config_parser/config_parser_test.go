@@ -56,7 +56,8 @@ func TestWithAllInformation(t *testing.T) {
 	if len(tasks) != expectedLength {
 		t.Fatalf(`len(tasks) equal to "%v", should be equal to "%d"`, len(tasks), expectedLength)
 	}
-	if result, ok := tasks[expectedResult.Name]; !ok {
+	result := tasks[0]
+	if result.Name != expectedResult.Name {
 		t.Fatalf(`result.Name equal to "%s", should be equal to "%s"'`, result.Name, expectedResult.Name)
 	} else if !result.EqualTo(expectedResult) {
 		t.Fatalf(`result doesn't equal to expectedResult'`)
@@ -98,11 +99,13 @@ func TestWithTManyTasks(t *testing.T) {
 	if len(resultTasks) != expectedLength {
 		t.Fatalf(`len(resultTasks) equal to "%v", should be equal to "%d"`, len(resultTasks), expectedLength)
 	}
-	for _, p := range expectedTasks {
-		if result, ok := resultTasks[p.Name]; !ok {
-			t.Fatalf(`result.Name equal to "%s", should be equal to "%s"`, result.Name, p.Name)
-		} else if result.Command != p.Command {
-			t.Fatalf(`result.Command equal to "%s", should be equal to "%s"`, result.Command, p.Command)
+	for i, _ := range expectedTasks {
+		result := resultTasks[i]
+		expectedResult := expectedTasks[i]
+		if expectedResult.Name != result.Name {
+			t.Fatalf(`result.Name equal to "%s", should be equal to "%s"`, result.Name, expectedResult.Name)
+		} else if result.Command != expectedTasks[i].Command {
+			t.Fatalf(`result.Command equal to "%s", should be equal to "%s"`, result.Command, expectedResult.Command)
 		}
 	}
 }

@@ -10,7 +10,7 @@ type configReader interface {
 }
 
 type ConfigParser interface {
-	Parse() (map[string]*task.Task, error)
+	Parse() ([]*task.Task, error)
 	setConfigReader(cr configReader)
 }
 
@@ -26,7 +26,7 @@ func NewConfigParser(filename string) ConfigParser {
 	return &IniConfigParser{fileConfigReader{filename}}
 }
 
-func (i *IniConfigParser) Parse() (map[string]*task.Task, error) {
+func (i *IniConfigParser) Parse() ([]*task.Task, error) {
 	if data, err := i.configReader.getData(); err != nil {
 		return nil, err
 	} else {
@@ -34,14 +34,14 @@ func (i *IniConfigParser) Parse() (map[string]*task.Task, error) {
 	}
 }
 
-func (i *IniConfigParser) parse(data []byte) (map[string]*task.Task, error) {
+func (i *IniConfigParser) parse(data []byte) ([]*task.Task, error) {
 	cfg, err := ini.Load(data)
 	if err != nil {
 		return nil, err
 	}
 
 	cfg.DeleteSection("DEFAULT") // DEFAULT is section by default. We don't need it
-	result := make(map[string]*task.Task)
+	var result []*task.Task
 	for _, section := range cfg.Sections() {
 		task := task.NewTask()
 		if err := section.StrictMapTo(&task); err != nil {
@@ -50,7 +50,7 @@ func (i *IniConfigParser) parse(data []byte) (map[string]*task.Task, error) {
 			return nil, err
 		}
 		task.Name = section.Name()
-		result[task.Name] = task
+		result = append(result, task)
 	}
 	return result, nil
 }

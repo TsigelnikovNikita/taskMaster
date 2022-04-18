@@ -10,7 +10,7 @@ import (
 
 
 type ConfigParser interface {
-	Parse() (map[string]*task.Task, error)
+	Parse() ([]*task.Task, error)
 }
 
 type TaskMaster struct {
