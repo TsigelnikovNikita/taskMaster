@@ -2,6 +2,8 @@ package config_parser
 
 import (
 	"bytes"
+	"fmt"
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/ini.v1"
 	"main/task"
 	"testing"
@@ -25,46 +27,63 @@ func serializeStructToBytes(v interface{}) []byte {
 }
 
 func TestWithAllInformation(t *testing.T) {
+	t.Parallel()
+
 	type T struct {
 		*task.Task `comment:"Task"`
 	}
-	expectedResult :=
-		&task.Task{
-			Name:             "Task",
-			Command:          "ls -la",
-			ProcessNumber:    10,
-			AutoStart:        true,
-			StartTimeSec:     1,
-			StartRetries:     3,
-			AutoRestart:      "unexpected",
-			ExitCodes:        []int{1, 2},
-			StopSignal:       0,
-			StopWaitSecs:     10,
-			StdErrLogfile:    "/dev/null",
-			StdOutLogfile:    "/dev/null",
-			Environments:     []string{"KEY1=VALUE1", "KEY2=VALUE2"},
-			WorkingDirectory: ".",
-			Umask:            "002",
-		}
+	expectedResult := &task.Task{
+		Name:             "Task",
+		Command:          "ls -la",
+		ProcessNumber:    10,
+		AutoStart:        true,
+		StartTimeSec:     1,
+		StartRetries:     3,
+		AutoRestart:      "unexpected",
+		ExitCodes:        []int{1, 2},
+		StopSignal:       0,
+		StopWaitSecs:     10,
+		StdErrLogfile:    "/dev/null",
+		StdOutLogfile:    "/dev/null",
+		Environments:     []string{"KEY1=VALUE1", "KEY2=VALUE2"},
+		WorkingDirectory: ".",
+		Umask:            "002",
+	}
+	expectedLength := 1
 	data := serializeStructToBytes(&T{expectedResult})
 
 	cr := mockConfigReader{data: data}
 	cp := IniConfigParser{configReader: cr}
 	tasks, _ := cp.Parse()
-
-	expectedLength := 1
-	if len(tasks) != expectedLength {
-		t.Fatalf(`len(tasks) equal to "%v", should be equal to "%d"`, len(tasks), expectedLength)
-	}
 	result := tasks[0]
-	if result.Name != expectedResult.Name {
-		t.Fatalf(`result.Name equal to "%s", should be equal to "%s"'`, result.Name, expectedResult.Name)
-	} else if !result.EqualTo(expectedResult) {
-		t.Fatalf(`result doesn't equal to expectedResult'`)
-	}
+
+	assert.Equal(t, expectedLength, len(tasks))
+	assert.Equal(t, expectedResult, result)
 }
 
-func TestWithTManyTasks(t *testing.T) {
+func TestDefaultValuesShouldBeCorrect(t *testing.T) {
+	t.Parallel()
+
+	type T struct {
+		*task.Task `comment:"Task"`
+	}
+	expectedResult := &task.Task{
+		Command: "ls -la",
+	}
+	data := serializeStructToBytes(&T{expectedResult})
+
+	cr := mockConfigReader{data: data}
+	cp := IniConfigParser{configReader: cr}
+	tasks, _ := cp.Parse()
+	result := tasks[0]
+
+	assert.Equal(t, "unexpected", result.AutoRestart)
+	assert.Equal(t, []int{0}, result.ExitCodes)
+}
+
+func TestWithManyTasks(t *testing.T) {
+	t.Parallel()
+
 	type T struct {
 		Task           *task.Task `comment:"Task"`
 		AnotherTask    *task.Task `comment:"AnotherTask"`
@@ -84,6 +103,7 @@ func TestWithTManyTasks(t *testing.T) {
 			Command: "rm -rf *",
 		},
 	}
+	expectedLength := len(expectedTasks)
 
 	data := serializeStructToBytes(&T{
 		expectedTasks[0],
@@ -95,63 +115,61 @@ func TestWithTManyTasks(t *testing.T) {
 	cp := IniConfigParser{configReader: cr}
 	resultTasks, _ := cp.Parse()
 
-	expectedLength := len(expectedTasks)
-	if len(resultTasks) != expectedLength {
-		t.Fatalf(`len(resultTasks) equal to "%v", should be equal to "%d"`, len(resultTasks), expectedLength)
-	}
-	for i, _ := range expectedTasks {
-		result := resultTasks[i]
-		expectedResult := expectedTasks[i]
-		if expectedResult.Name != result.Name {
-			t.Fatalf(`result.Name equal to "%s", should be equal to "%s"`, result.Name, expectedResult.Name)
-		} else if result.Command != expectedTasks[i].Command {
-			t.Fatalf(`result.Command equal to "%s", should be equal to "%s"`, result.Command, expectedResult.Command)
-		}
+	assert.Equal(t, expectedLength, len(resultTasks))
+	for i, expectedTask := range expectedTasks {
+		t.Run(fmt.Sprintf("Result #%d should be equal to ExpectedResult #%d", i, i), func(t *testing.T) {
+			assert.Equal(t, expectedTask.Name, resultTasks[i].Name)
+			assert.Equal(t, expectedTask.Command, resultTasks[i].Command)
+		})
 	}
 }
 
 func TestWithIncorrectData(t *testing.T) {
+	t.Parallel()
+
 	data := []byte("IncorrectData")
 
 	cr := mockConfigReader{data: data}
 	cp := IniConfigParser{configReader: cr}
-	expectedResult := "key-value delimiter not found: IncorrectData"
-	if _, err := cp.Parse(); err == nil {
-		t.Fatalf(`expected err from cp.Parse() method`)
-	} else if err.Error() != expectedResult {
-		t.Fatalf(`err.Error() equal to "%s", should be equal to "%s"`, err.Error(), expectedResult)
-	}
+	expectedError := "key-value delimiter not found: IncorrectData"
+
+	_, err := cp.Parse()
+
+	assert.EqualError(t, err, expectedError)
 }
 
 func TestWithEmptyTask(t *testing.T) {
+	t.Parallel()
+
 	data := []byte("[Task]")
 
 	cr := mockConfigReader{data: data}
 	cp := IniConfigParser{configReader: cr}
-	expectedResult := "task must have 'command' value"
-	if _, err := cp.Parse(); err == nil {
-		t.Fatalf(`expected err from cp.Parse() method`)
-	} else if err.Error() != expectedResult {
-		t.Fatalf(`err.Error() equal to "%s", should be equal to "%s"`, err.Error(), expectedResult)
-	}
+	expectedError := "task must have 'command' value"
+
+	_, err := cp.Parse()
+
+	assert.EqualError(t, err, expectedError)
 }
 
 func TestWithoutCommandValue(t *testing.T) {
+	t.Parallel()
+
 	data := []byte("[Task]\n" +
 		"auto_restart=unexpected")
 
 	cr := mockConfigReader{data: data}
 	cp := IniConfigParser{configReader: cr}
-	expectedResult := "task must have 'command' value"
-	if _, err := cp.Parse(); err == nil {
-		t.Fatalf(`expected err from cp.Parse() method`)
-	} else if err.Error() != expectedResult {
-		t.Fatalf(
-			`err.Error() equal to "%s", should be equal to "%s"`, err.Error(), expectedResult)
-	}
+	expectedError := "task must have 'command' value"
+
+	_, err := cp.Parse()
+
+	assert.EqualError(t, err, expectedError)
 }
 
 func TestWithIncorrectAutoStartValue(t *testing.T) {
+	t.Parallel()
+
 	type T struct {
 		*task.Task `comment:"Task"`
 	}
@@ -165,10 +183,9 @@ func TestWithIncorrectAutoStartValue(t *testing.T) {
 
 	cr := mockConfigReader{data: data}
 	cp := IniConfigParser{configReader: cr}
-	expectedResult := "auto_restart option should be 'never', 'unexpected' or 'always' value"
-	if _, err := cp.Parse(); err == nil {
-		t.Fatalf(`expected err from cp.Parse() method`)
-	} else if err.Error() != expectedResult {
-		t.Fatalf(`err.Error() equal to "%s", should be equal to "%s"`, err.Error(), expectedResult)
-	}
+	expectedError := "auto_restart option should be 'never', 'unexpected' or 'always' value"
+
+	_, err := cp.Parse()
+
+	assert.EqualError(t, err, expectedError)
 }
